@@ -1,5 +1,7 @@
 let _io = null;
 const jwt = require('jsonwebtoken');
+const { Op } = require('sequelize');
+const MonitoredSite = require('../models/MonitoredSite');
 
 /** Called once from server.js after socket.io is initialized. */
 const init = (io) => {
@@ -19,6 +21,26 @@ const init = (io) => {
   });
 
   io.on('connection', (socket) => {
+    socket.on('subscribe', async ({ siteIds } = {}) => {
+      if (!Array.isArray(siteIds)) return;
+      const validIds = siteIds
+        .map(Number)
+        .filter((id) => Number.isSafeInteger(id) && id > 0)
+        .slice(0, 100);
+      if (validIds.length === 0) return;
+
+      try {
+        const ownedSites = await MonitoredSite.findAll({
+          _id: { [Op.in]: validIds },
+          owner: socket.data.userId,
+          attributes: ['_id'],
+        });
+        ownedSites.forEach(({ _id }) => socket.join(`site:${_id}`));
+      } catch (error) {
+        console.error('[socket] Could not authorize site subscriptions:', error.message);
+      }
+    });
+
     socket.on('disconnect', () => {});
   });
 };
