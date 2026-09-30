@@ -1,0 +1,17 @@
+{
+  "name": "uptime-sentinel-backend",
+  "version": "1.0.0",
+  "description": "Uptime monitoring backend — Express + MySQL",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.24.5",
+    "sequelize": "^6.37.8"
+  }
+}
