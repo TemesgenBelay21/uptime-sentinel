@@ -66,3 +66,18 @@ npm run build
 - 24-hour, 7-day, and 30-day uptime summaries, response-time charts, and check timelines
 - Public status pages at `/status/:publicSlug`
 - URL validation for HTTP/HTTPS only, private/special-use address rejection, and DNS-result checks during each outbound request, including redirects
+
+## API overview
+
+- `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`
+- `GET/POST /api/sites`, `GET/PUT/DELETE /api/sites/:id`
+- `GET /api/sites/:id/checks?range=24h|7d|30d`
+- `GET /api/sites/:id/uptime?range=24h|7d|30d`
+- `GET /api/status/:publicSlug` (public)
+- `GET /health`
+
+Authenticated socket clients provide their JWT in the Socket.io handshake and emit `subscribe` with site IDs. Status events arrive as `site:status-update`.
+
+## Deployment notes
+
+The scheduler currently runs in each backend process. Deploy one backend instance unless a distributed scheduler lock is added; otherwise each instance will perform duplicate checks and send duplicate alerts. Restrict the production CORS origin with `FRONTEND_URL`, use HTTPS, and keep `.env` out of version control.
