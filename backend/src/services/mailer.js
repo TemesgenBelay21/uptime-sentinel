@@ -28,10 +28,10 @@ const sendDownAlert = async ({ to, siteName, siteUrl, detectedAt, errorMessage, 
   await getTransporter().sendMail({
     from: process.env.EMAIL_FROM,
     to,
-    subject: `[Uptime Sentinel] ${siteName} is DOWN`,
+    subject: `🔴 [Uptime Sentinel] ${siteName} is DOWN`,
     html: `
       <div style="font-family:sans-serif;max-width:560px;margin:auto">
-        <h2 style="color:#ef4444">${siteName} is Down</h2>
+        <h2 style="color:#ef4444">🔴 ${siteName} is Down</h2>
         <p>Your monitored site has become unreachable.</p>
         <table style="width:100%;border-collapse:collapse">
           <tr><td style="padding:6px;font-weight:bold">URL</td><td>${siteUrl}</td></tr>
@@ -47,4 +47,46 @@ const sendDownAlert = async ({ to, siteName, siteUrl, detectedAt, errorMessage, 
   });
 };
 
-module.exports = { sendDownAlert };
+/**
+ * Send a "site recovered" alert email.
+ * @param {object} params - { to, siteName, siteUrl, recoveredAt, downtimeMs }
+ */
+const sendRecoveryAlert = async ({ to, siteName, siteUrl, recoveredAt, downtimeMs }) => {
+  const timeStr = new Date(recoveredAt).toUTCString();
+  const downtimeStr = formatDuration(downtimeMs);
+
+  await getTransporter().sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: `🟢 [Uptime Sentinel] ${siteName} is back UP`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:auto">
+        <h2 style="color:#22c55e">🟢 ${siteName} has Recovered</h2>
+        <p>Your monitored site is reachable again.</p>
+        <table style="width:100%;border-collapse:collapse">
+          <tr><td style="padding:6px;font-weight:bold">URL</td><td>${siteUrl}</td></tr>
+          <tr><td style="padding:6px;font-weight:bold">Recovered at</td><td>${timeStr}</td></tr>
+          <tr><td style="padding:6px;font-weight:bold">Downtime duration</td><td>${downtimeStr}</td></tr>
+        </table>
+        <p style="margin-top:24px;color:#6b7280;font-size:12px">
+          — Uptime Sentinel
+        </p>
+      </div>
+    `,
+  });
+};
+
+const formatDuration = (ms) => {
+  if (!ms || ms < 0) return 'Unknown';
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const parts = [];
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
+  return parts.join(' ');
+};
+
+module.exports = { sendDownAlert, sendRecoveryAlert };
