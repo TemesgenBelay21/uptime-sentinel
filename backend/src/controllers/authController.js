@@ -20,11 +20,8 @@ const register = async (req, res, next) => {
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
     const user = await User.create({ name: name.trim(), email: normalizedEmail, passwordHash });
 
-    const token = jwt.sign({ userId: user._id.toString() }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-    });
-
-    res.status(201).json({ token, user: { _id: user._id, name: user.name, email: user.email } });
+    const token = signToken(user._id);
+    res.status(201).json({ token, user: safeUser(user) });
   } catch (err) {
     next(err);
   }
@@ -43,14 +40,36 @@ const login = async (req, res, next) => {
     const match = await bcrypt.compare(password, user.passwordHash);
     if (!match) return res.status(401).json({ message: 'Invalid credentials' });
 
-    const token = jwt.sign({ userId: user._id.toString() }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-    });
-
-    res.json({ token, user: { _id: user._id, name: user.name, email: user.email } });
+    const token = signToken(user._id);
+    res.json({ token, user: safeUser(user) });
   } catch (err) {
     next(err);
   }
 };
 
-module.exports = { register, login };
+/** GET /api/auth/me */
+const me = async (req, res, next) => {
+  try {
+    const user = await User.findByPk(req.user.userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+const signToken = (userId) =>
+  jwt.sign({ userId: userId.toString() }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  });
+
+const safeUser = (user) => ({
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  createdAt: user.createdAt,
+});
+
+module.exports = { register, login, me };
