@@ -1,16 +1,22 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { getMe } from "../api";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    const raw = localStorage.getItem("user");
-    return raw ? JSON.parse(raw) : null;
-  });
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(() =>
+    Boolean(localStorage.getItem("token")),
+  );
 
   useEffect(() => {
-    if (user) localStorage.setItem("user", JSON.stringify(user));
-  }, [user]);
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    getMe()
+      .then((res) => setUser(res.data.user))
+      .catch(() => localStorage.removeItem("token"))
+      .finally(() => setLoading(false));
+  }, []);
 
   const storeLogin = (token, userData) => {
     localStorage.setItem("token", token);
@@ -19,12 +25,11 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("user");
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, storeLogin, logout }}>
+    <AuthContext.Provider value={{ user, loading, storeLogin, logout }}>
       {children}
     </AuthContext.Provider>
   );
